@@ -1,0 +1,1313 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>远程切水果 · 整只手体感 Demo</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #171413;
+      --paper: #fff7ea;
+      --orange: #ff6b4a;
+      --gold: #ffd166;
+      --green: #53b97f;
+      --blue: #3aa7b7;
+      --pink: #ff9bb0;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #070807;
+      font-family: ui-rounded, "SF Pro Rounded", "PingFang SC", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      touch-action: none;
+      cursor: none;
+    }
+    video { display: none; }
+    .start {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at 18% 22%, rgba(255,107,74,.25), transparent 32%),
+        radial-gradient(circle at 78% 72%, rgba(83,185,127,.22), transparent 34%),
+        rgba(7,8,7,.76);
+      backdrop-filter: blur(18px);
+    }
+    .panel {
+      width: min(560px, 100%);
+      padding: 24px;
+      border-radius: 8px;
+      background: rgba(255,247,234,.94);
+      color: var(--ink);
+      border: 1px solid rgba(255,255,255,.2);
+      box-shadow: 0 28px 88px rgba(0,0,0,.34);
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(34px, 7vw, 58px);
+      line-height: .96;
+      letter-spacing: 0;
+    }
+    p {
+      margin: 0 0 18px;
+      color: rgba(23,20,19,.72);
+      font-size: 15px;
+      line-height: 1.65;
+    }
+    button {
+      appearance: none;
+      border: 0;
+      font: inherit;
+      user-select: none;
+    }
+    #startBtn {
+      width: 100%;
+      height: 52px;
+      border-radius: 8px;
+      background: var(--orange);
+      color: #fff;
+      font-size: 17px;
+      font-weight: 900;
+      box-shadow: 0 12px 24px rgba(255,107,74,.34);
+    }
+    .small {
+      margin-top: 12px;
+      color: rgba(23,20,19,.54);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .topbar {
+      position: fixed;
+      z-index: 20;
+      left: 14px;
+      right: 14px;
+      top: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      pointer-events: none;
+    }
+    .pill, .icon {
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(10,12,10,.58);
+      color: rgba(255,255,255,.84);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 8px 24px rgba(0,0,0,.16);
+      pointer-events: auto;
+    }
+    .pill {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 13px;
+      font-size: 13px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+    .score { color: #fff; font-variant-numeric: tabular-nums; }
+    .tools { display: flex; gap: 8px; pointer-events: auto; }
+    .icon {
+      width: 38px;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+    }
+    .status {
+      position: fixed;
+      z-index: 20;
+      left: 14px;
+      bottom: 14px;
+      max-width: min(680px, calc(100vw - 28px));
+      border-radius: 8px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(10,12,10,.56);
+      color: rgba(255,255,255,.82);
+      backdrop-filter: blur(14px);
+      font-size: 12px;
+      line-height: 1.48;
+      pointer-events: none;
+    }
+    .status strong { color: white; }
+    .finish {
+      position: fixed;
+      inset: 0;
+      z-index: 28;
+      display: none;
+      place-items: center;
+      padding: 24px;
+      background: rgba(7,8,7,.58);
+      backdrop-filter: blur(18px);
+    }
+    .finish.show { display: grid; }
+    .finish .panel { max-width: 520px; }
+    .finish h2 {
+      margin: 0 0 12px;
+      font-size: clamp(32px, 6vw, 52px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 18px 0;
+    }
+    .stat {
+      border-radius: 8px;
+      padding: 12px;
+      background: rgba(23,20,19,.07);
+    }
+    .stat b {
+      display: block;
+      font-size: 24px;
+      line-height: 1.1;
+      color: var(--ink);
+    }
+    .stat span {
+      color: rgba(23,20,19,.58);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    @media (max-width: 760px) {
+      .topbar { flex-direction: column; }
+      .tools { align-self: flex-end; }
+      .pill { max-width: calc(100vw - 28px); overflow-x: auto; }
+      .status { font-size: 11px; }
+      .stats { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="stage"></canvas>
+  <video id="camera" playsinline muted></video>
+
+  <div class="start" id="startPanel">
+    <section class="panel">
+      <h1>5 分钟空气切水果</h1>
+      <p>久坐以后站起来玩一轮。屏幕会指定目标水果和运动区域，手部准星会提示你是否锁定，5 分钟后给出运动反馈。</p>
+      <button id="startBtn">启动 5 分钟运动</button>
+      <div class="small">鼠标和触摸也能玩。摄像头权限需要你点允许；声音需要点击一次页面解锁。</div>
+    </section>
+  </div>
+
+  <div class="topbar">
+    <div class="pill">
+      <span>🍉 远程切水果</span>
+      <span>时间 <span class="score" id="timeLeft">5:00</span></span>
+      <span>阶段 <span class="score" id="phase">准备</span></span>
+      <span>目标 <span class="score" id="target">--</span></span>
+      <span>分数 <span class="score" id="score">0</span></span>
+      <span>连击 <span class="score" id="combo">0</span></span>
+      <span>速度 <span class="score" id="speed">0</span></span>
+    </div>
+    <div class="tools">
+      <button class="icon" id="soundBtn" title="开启声音">🔇</button>
+      <button class="icon" id="resetBtn" title="重新开始">↻</button>
+      <button class="icon" id="flipBtn" title="翻转摄像头">⇄</button>
+    </div>
+  </div>
+
+  <div class="status" id="status"><strong>准备中</strong>。启动后看清目标水果，用整只手扫过去切它。</div>
+
+  <div class="finish" id="finishPanel">
+    <section class="panel">
+      <h2>5 分钟完成</h2>
+      <p id="finishCopy">这轮久坐唤醒结束了。</p>
+      <div class="stats" id="finishStats"></div>
+      <button id="againBtn">再来一轮</button>
+      <div class="small">建议离屏幕半步到一步，确保左右伸展都能进入画面。</div>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script>
+    const canvas = document.getElementById("stage")
+    const ctx = canvas.getContext("2d")
+    const video = document.getElementById("camera")
+    const startPanel = document.getElementById("startPanel")
+    const statusEl = document.getElementById("status")
+    const targetEl = document.getElementById("target")
+    const timeLeftEl = document.getElementById("timeLeft")
+    const phaseEl = document.getElementById("phase")
+    const scoreEl = document.getElementById("score")
+    const comboEl = document.getElementById("combo")
+    const speedEl = document.getElementById("speed")
+    const soundBtn = document.getElementById("soundBtn")
+    const finishPanel = document.getElementById("finishPanel")
+    const finishCopy = document.getElementById("finishCopy")
+    const finishStats = document.getElementById("finishStats")
+    const DPR = Math.min(window.devicePixelRatio || 1, 1.5)
+
+    let W = 1
+    let H = 1
+    let mirror = true
+    let cameraOk = false
+    let booting = false
+    let soundUnlocked = false
+    let audioCtx = null
+    let fruits = []
+    let slices = []
+    let juice = []
+    let explosions = []
+    let rewardPopups = []
+    let trails = []
+    let handPoints = []
+    let prevHandPoints = []
+    let mouseDown = false
+    let mouseTrail = []
+    let score = 0
+    let combo = 0
+    let targetFruit = null
+    let targetHits = 0
+    let spawnTimer = 0
+    let lastTime = performance.now()
+    let maxHandSpeed = 0
+    let screenShake = 0
+    let dangerFlash = 0
+    let handStrike = 0
+    let handLock = 0
+    let targetChain = 0
+    let lastTargetCutAt = 0
+    let targetCompleting = false
+    let sessionStartedAt = 0
+    let sessionEnded = false
+    let activeMs = 0
+    let swingCount = 0
+    let lastSwingAt = 0
+    let leftCuts = 0
+    let rightCuts = 0
+    let maxCombo = 0
+    let targetZone = null
+    let zoneCursor = 0
+
+    const fruitTypes = [
+      { emoji: "🍉", color: "#5cff92", juice: "#ff365f", name: "西瓜" },
+      { emoji: "🍊", color: "#ff9a24", juice: "#ffbf2f", name: "橙子" },
+      { emoji: "🍋", color: "#ffe45c", juice: "#fff76a", name: "柠檬" },
+      { emoji: "🍎", color: "#ff3f54", juice: "#ff284a", name: "苹果" },
+      { emoji: "🥝", color: "#91ff4f", juice: "#b8ff63", name: "猕猴桃" },
+      { emoji: "🫐", color: "#6e8cff", juice: "#8fb3ff", name: "蓝莓" },
+    ]
+
+    const SESSION_MS = 5 * 60 * 1000
+    const workoutPhases = [
+      { key: "warmup", name: "热身", until: 60 * 1000, hint: "左右伸展，慢慢进入状态" },
+      { key: "main", name: "主运动", until: 4 * 60 * 1000, hint: "上下左右交叉切，带一点转体" },
+      { key: "sprint", name: "冲刺", until: 4.5 * 60 * 1000, hint: "同类水果连杀，尽量保持节奏" },
+      { key: "cooldown", name: "放松", until: SESSION_MS, hint: "放慢动作，舒展手臂收尾" },
+    ]
+    const zoneSets = {
+      warmup: ["left", "right"],
+      main: ["topLeft", "bottomRight", "topRight", "bottomLeft"],
+      sprint: ["left", "center", "right", "topLeft", "topRight"],
+      cooldown: ["center", "left", "right"],
+    }
+    const zoneLabels = {
+      left: "左侧",
+      right: "右侧",
+      center: "中间",
+      topLeft: "左上",
+      topRight: "右上",
+      bottomLeft: "左下",
+      bottomRight: "右下",
+    }
+
+    function resize() {
+      W = window.innerWidth
+      H = window.innerHeight
+      canvas.width = Math.floor(W * DPR)
+      canvas.height = Math.floor(H * DPR)
+      canvas.style.width = W + "px"
+      canvas.style.height = H + "px"
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0)
+    }
+
+    function unlockSound() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+      if (audioCtx.state === "suspended") audioCtx.resume()
+      soundUnlocked = true
+      soundBtn.textContent = "🔊"
+      playTone(520, .06)
+      setTimeout(() => playTone(780, .06), 80)
+      statusEl.innerHTML = "<strong>声音已开启</strong>。挥手切水果会有切割音和爆汁反馈。"
+    }
+
+    function playTone(freq, dur = .08, type = "sine", volume = .12) {
+      if (!soundUnlocked || !audioCtx) return
+      const now = audioCtx.currentTime
+      const osc = audioCtx.createOscillator()
+      const gain = audioCtx.createGain()
+      osc.type = type
+      osc.frequency.setValueAtTime(freq, now)
+      osc.frequency.exponentialRampToValueAtTime(freq * 1.7, now + dur)
+      gain.gain.setValueAtTime(.0001, now)
+      gain.gain.exponentialRampToValueAtTime(volume, now + .01)
+      gain.gain.exponentialRampToValueAtTime(.0001, now + dur)
+      osc.connect(gain)
+      gain.connect(audioCtx.destination)
+      osc.start(now)
+      osc.stop(now + dur + .02)
+    }
+
+    function noiseCut(volume = .08) {
+      if (!soundUnlocked || !audioCtx) return
+      const dur = .06
+      const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * dur, audioCtx.sampleRate)
+      const data = buffer.getChannelData(0)
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length)
+      const src = audioCtx.createBufferSource()
+      const gain = audioCtx.createGain()
+      const filter = audioCtx.createBiquadFilter()
+      filter.type = "highpass"
+      filter.frequency.value = 900
+      gain.gain.value = volume
+      src.buffer = buffer
+      src.connect(filter)
+      filter.connect(gain)
+      gain.connect(audioCtx.destination)
+      src.start()
+    }
+
+    function formatTime(ms) {
+      const safe = Math.max(0, Math.ceil(ms / 1000))
+      const m = Math.floor(safe / 60)
+      const s = String(safe % 60).padStart(2, "0")
+      return `${m}:${s}`
+    }
+
+    function currentPhase() {
+      const elapsed = sessionStartedAt ? Math.min(SESSION_MS, performance.now() - sessionStartedAt) : 0
+      return workoutPhases.find(p => elapsed < p.until) || workoutPhases[workoutPhases.length - 1]
+    }
+
+    function zoneCenter(zone) {
+      const map = {
+        left: [.24, .48],
+        right: [.76, .48],
+        center: [.5, .5],
+        topLeft: [.3, .28],
+        topRight: [.7, .28],
+        bottomLeft: [.3, .66],
+        bottomRight: [.7, .66],
+      }
+      const [x, y] = map[zone] || map.center
+      return { x: W * x, y: H * y }
+    }
+
+    function chooseTargetZone() {
+      const phase = currentPhase()
+      const set = zoneSets[phase.key] || zoneSets.main
+      if (phase.key === "main" && Math.abs(leftCuts - rightCuts) >= 3) {
+        return leftCuts > rightCuts ? "right" : "left"
+      }
+      const zone = set[zoneCursor % set.length]
+      zoneCursor += 1
+      return zone
+    }
+
+    function updateWorkout(dt) {
+      if (!sessionStartedAt || sessionEnded) return
+      const elapsed = performance.now() - sessionStartedAt
+      const left = Math.max(0, SESSION_MS - elapsed)
+      const phase = currentPhase()
+      timeLeftEl.textContent = formatTime(left)
+      phaseEl.textContent = phase.name
+      if (maxHandSpeed > 5 || handStrike > .18 || handLock > .25) activeMs += dt
+      if (elapsed >= SESSION_MS) finishSession()
+    }
+
+    function finishSession() {
+      if (sessionEnded) return
+      sessionEnded = true
+      fruits = []
+      trails = []
+      handPoints = []
+      prevHandPoints = []
+      timeLeftEl.textContent = "0:00"
+      phaseEl.textContent = "完成"
+      const balanceTotal = leftCuts + rightCuts || 1
+      const balance = Math.round((1 - Math.abs(leftCuts - rightCuts) / balanceTotal) * 100)
+      finishCopy.textContent = "你完成了一轮 5 分钟久坐唤醒。身体重新上线了。"
+      finishStats.innerHTML = `
+        <div class="stat"><b>${score}</b><span>总分</span></div>
+        <div class="stat"><b>${swingCount}</b><span>挥手次数</span></div>
+        <div class="stat"><b>${Math.round(activeMs / 1000)} 秒</b><span>活跃时间</span></div>
+        <div class="stat"><b>${balance}%</b><span>左右平衡</span></div>
+        <div class="stat"><b>${maxCombo}</b><span>最高连击</span></div>
+        <div class="stat"><b>${leftCuts}/${rightCuts}</b><span>左/右命中</span></div>
+      `
+      finishPanel.classList.add("show")
+      statusEl.innerHTML = "<strong>完成</strong>。5 分钟运动结束，可以喝口水。"
+      playTone(420, .09, "triangle", .06)
+      setTimeout(() => playTone(620, .09, "triangle", .06), 110)
+      setTimeout(() => playTone(840, .11, "triangle", .07), 230)
+    }
+
+    function chooseTarget(announce = true) {
+      let next = fruitTypes[Math.floor(Math.random() * fruitTypes.length)]
+      if (targetFruit && fruitTypes.length > 1) {
+        let guard = 0
+        while (next.name === targetFruit.name && guard < 8) {
+          next = fruitTypes[Math.floor(Math.random() * fruitTypes.length)]
+          guard += 1
+        }
+      }
+      targetFruit = next
+      targetHits = 0
+      targetCompleting = false
+      targetZone = chooseTargetZone()
+      targetEl.textContent = `${targetFruit.emoji} ${targetFruit.name} · ${zoneLabels[targetZone]} 0/3`
+      if (announce) statusEl.innerHTML = `<strong>${currentPhase().name}</strong>。去 ${zoneLabels[targetZone]} 切 ${targetFruit.emoji} ${targetFruit.name}，${currentPhase().hint}。`
+    }
+
+    function hasVisibleTarget() {
+      return targetFruit && fruits.some(f => !f.sliced && f.name === targetFruit.name && f.y > -80 && f.y < H + 80)
+    }
+
+    function spawnFruit(forceTarget = false, visibleStart = false) {
+      if (!targetFruit) chooseTarget(false)
+      const useTarget = forceTarget || Math.random() < .48
+      const type = useTarget ? targetFruit : fruitTypes[Math.floor(Math.random() * fruitTypes.length)]
+      const r = 56 + Math.random() * 20
+      let x = W * (.12 + Math.random() * .76)
+      let y = visibleStart ? H * (.34 + Math.random() * .18) : H + r + 20
+      if (useTarget && targetZone) {
+        const c = zoneCenter(targetZone)
+        x = c.x + (Math.random() - .5) * Math.min(180, W * .18)
+        y = visibleStart ? c.y + (Math.random() - .5) * Math.min(120, H * .14) : H + r + 20
+      }
+      const vx = (Math.random() - .5) * 1.8
+      const phase = currentPhase()
+      const lift = phase.key === "sprint" ? 15.5 : phase.key === "cooldown" ? 10.4 : 13.2
+      const vy = visibleStart ? -(1.4 + Math.random() * 1.1) : -(lift + Math.random() * 4.2 + Math.min(2.8, score / 1000))
+      fruits.push({
+        ...type,
+        x, y, vx, vy, r,
+        rot: Math.random() * Math.PI * 2,
+        vr: (Math.random() - .5) * .15,
+        sliced: false,
+      })
+    }
+
+    function resetGame() {
+      fruits = []
+      slices = []
+      juice = []
+      explosions = []
+      rewardPopups = []
+      trails = []
+      score = 0
+      combo = 0
+      targetFruit = null
+      targetHits = 0
+      spawnTimer = 0
+      screenShake = 0
+      dangerFlash = 0
+      handStrike = 0
+      handLock = 0
+      targetChain = 0
+      lastTargetCutAt = 0
+      targetCompleting = false
+      sessionStartedAt = performance.now()
+      sessionEnded = false
+      activeMs = 0
+      swingCount = 0
+      lastSwingAt = 0
+      leftCuts = 0
+      rightCuts = 0
+      maxCombo = 0
+      targetZone = null
+      zoneCursor = 0
+      finishPanel.classList.remove("show")
+      scoreEl.textContent = "0"
+      comboEl.textContent = "0"
+      timeLeftEl.textContent = "5:00"
+      phaseEl.textContent = "热身"
+      chooseTarget(false)
+      spawnFruit(true, true)
+      for (let i = 1; i < 3; i++) setTimeout(() => spawnFruit(i === 1, true), i * 420)
+      statusEl.innerHTML = `<strong>5 分钟开始</strong>。先去 ${zoneLabels[targetZone]} 切 ${targetFruit.emoji} ${targetFruit.name}。`
+    }
+
+    function cameraFill() {
+      ctx.save()
+      if (cameraOk && video.readyState >= 2) {
+        const vw = video.videoWidth || 1280
+        const vh = video.videoHeight || 720
+        const s = Math.max(W / vw, H / vh)
+        const dw = vw * s
+        const dh = vh * s
+        const dx = (W - dw) / 2
+        const dy = (H - dh) / 2
+        ctx.globalAlpha = .96
+        if (mirror) {
+          ctx.translate(W, 0)
+          ctx.scale(-1, 1)
+          ctx.drawImage(video, W - dx - dw, dy, dw, dh)
+        } else {
+          ctx.drawImage(video, dx, dy, dw, dh)
+        }
+        ctx.globalAlpha = 1
+      } else {
+        const g = ctx.createLinearGradient(0, 0, W, H)
+        g.addColorStop(0, "#182016")
+        g.addColorStop(.5, "#071719")
+        g.addColorStop(1, "#070807")
+        ctx.fillStyle = g
+        ctx.fillRect(0, 0, W, H)
+      }
+      ctx.restore()
+    }
+
+    function update(dt) {
+      updateWorkout(dt)
+      spawnTimer += dt
+      const phase = currentPhase()
+      const baseInterval = phase.key === "sprint" ? 760 : phase.key === "cooldown" ? 1500 : phase.key === "warmup" ? 1280 : 1020
+      const maxFruits = phase.key === "sprint" ? 6 : phase.key === "cooldown" ? 3 : 4
+      const interval = Math.max(620, baseInterval - score * .08)
+      if (!sessionEnded && spawnTimer > interval && fruits.length < maxFruits) {
+        spawnTimer = 0
+        spawnFruit(!hasVisibleTarget() || Math.random() < (phase.key === "sprint" ? .55 : .2), phase.key === "sprint" && Math.random() < .55)
+        if (phase.key === "sprint" && Math.random() < .45) setTimeout(() => spawnFruit(true, true), 160)
+      }
+
+      for (const fruit of fruits) {
+        fruit.vy += .145
+        fruit.x += fruit.vx
+        fruit.y += fruit.vy
+        fruit.rot += fruit.vr
+      }
+      fruits = fruits.filter(f => f.y < H + 180 && f.x > -180 && f.x < W + 180 && !f.sliced)
+
+      for (const piece of slices) {
+        piece.vy += .22
+        piece.x += piece.vx
+        piece.y += piece.vy
+        piece.rot += piece.vr
+        piece.life -= dt * .00045
+      }
+      slices = slices.filter(p => p.life > 0 && p.y < H + 160)
+
+      for (const p of juice) {
+        p.vy += .08
+        p.x += p.vx
+        p.y += p.vy
+        p.life -= dt * .0017
+      }
+      juice = juice.filter(p => p.life > 0)
+
+      for (const e of explosions) {
+        e.life -= dt * .0019
+        e.r += e.grow * dt * .06
+      }
+      explosions = explosions.filter(e => e.life > 0)
+
+      for (const popup of rewardPopups) {
+        popup.y += popup.vy
+        popup.life -= dt * .0015
+      }
+      rewardPopups = rewardPopups.filter(popup => popup.life > 0)
+
+      for (const t of trails) t.life -= dt * .0018
+      trails = trails.filter(t => t.life > 0)
+      screenShake = Math.max(0, screenShake - dt * .07)
+      dangerFlash = Math.max(0, dangerFlash - dt * .0032)
+      handStrike = Math.max(0, handStrike - dt * .0038)
+      updateHandLock()
+
+      if (!sessionEnded && !hasVisibleTarget() && fruits.length < 3 && spawnTimer > 500) {
+        spawnTimer = 0
+        spawnFruit(true, true)
+      }
+
+      if (!sessionEnded) checkCuts()
+      maxHandSpeed *= .88
+      speedEl.textContent = Math.round(maxHandSpeed)
+    }
+
+    function checkCuts() {
+      const activeSegments = []
+      for (const t of trails) {
+        if (t.life < .07) continue
+        for (let i = 1; i < t.points.length; i++) {
+          const a = t.points[i - 1]
+          const b = t.points[i]
+          const speed = Math.hypot(b.x - a.x, b.y - a.y)
+          if (speed > 2.4) activeSegments.push({ a, b, speed })
+        }
+      }
+      for (const fruit of fruits) {
+        for (const seg of activeSegments) {
+          if (distancePointToSegment(fruit.x, fruit.y, seg.a.x, seg.a.y, seg.b.x, seg.b.y) < fruit.r * 1.38) {
+            sliceFruit(fruit, seg)
+            break
+          }
+        }
+      }
+    }
+
+    function distancePointToSegment(px, py, x1, y1, x2, y2) {
+      const dx = x2 - x1
+      const dy = y2 - y1
+      const len = dx * dx + dy * dy || 1
+      const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / len))
+      const x = x1 + t * dx
+      const y = y1 + t * dy
+      return Math.hypot(px - x, py - y)
+    }
+
+    function sliceFruit(fruit, seg) {
+      if (fruit.sliced) return
+      fruit.sliced = true
+      const isTarget = targetFruit && fruit.name === targetFruit.name
+      if (isTarget) {
+        const now = performance.now()
+        targetChain = now - lastTargetCutAt < 900 ? targetChain + 1 : 1
+        lastTargetCutAt = now
+        combo += 1
+        targetHits += 1
+        maxCombo = Math.max(maxCombo, combo)
+        if (fruit.x < W / 2) leftCuts += 1
+        else rightCuts += 1
+        score += 14 + combo * 3
+        if (targetChain >= 2) {
+          const bonus = targetChain * 12
+          score += bonus
+          addRewardPopup(fruit.x, fruit.y - fruit.r * .9, `连杀 +${bonus}`, fruit.color)
+          playTone(520 + targetChain * 70, .09, "square", .055)
+        }
+      } else {
+        combo = 0
+        targetChain = 0
+        targetHits = Math.max(0, targetHits - 1)
+        if (targetFruit) targetEl.textContent = `${targetFruit.emoji} ${targetFruit.name} ${targetHits}/3`
+        score = Math.max(0, score - 18)
+        screenShake = Math.max(screenShake, 24)
+        dangerFlash = .95
+      }
+      scoreEl.textContent = score
+      comboEl.textContent = combo
+      if (isTarget) {
+        targetEl.textContent = `${targetFruit.emoji} ${targetFruit.name} · ${zoneLabels[targetZone]} ${targetHits}/3`
+        statusEl.innerHTML = targetChain >= 2 ? `<strong>${targetChain} 连杀</strong>：同类目标水果连续爆开，奖励加分。` : targetHits >= 3 ? `<strong>目标完成</strong>：${targetFruit.emoji} ${targetFruit.name} 清掉了，准备换下一种。` : `<strong>命中目标</strong>：继续切 ${targetFruit.emoji} ${targetFruit.name}。`
+        noiseCut(.07 + Math.min(.1, seg.speed / 500))
+        playTone(300 + combo * 28, .08, "triangle", .08)
+        createExplosion(fruit, true)
+        burstJuice(fruit.x, fruit.y, fruit.juice, 46)
+      } else {
+        statusEl.innerHTML = `<strong>误切 -18</strong>：现在要切的是 ${targetFruit.emoji} ${targetFruit.name}，目标进度会后退。`
+        noiseCut(.09)
+        playTone(110, .11, "sawtooth", .07)
+        createExplosion(fruit, false)
+        burstJuice(fruit.x, fruit.y, "rgba(255,50,60,.78)", 28)
+      }
+      createSlices(fruit, seg)
+      if (isTarget && targetHits >= 3 && !targetCompleting) {
+        targetCompleting = true
+        score += 25
+        addRewardPopup(fruit.x, fruit.y - fruit.r * 1.15, "目标完成 +25", fruit.color)
+        scoreEl.textContent = score
+        setTimeout(() => {
+          if (!sessionEnded) {
+            chooseTarget(true)
+            spawnFruit(true, true)
+            setTimeout(() => spawnFruit(true, true), 240)
+          }
+        }, 360)
+      }
+    }
+
+    function createSlices(fruit, seg) {
+      const angle = Math.atan2(seg.b.y - seg.a.y, seg.b.x - seg.a.x)
+      for (let side = -1; side <= 1; side += 2) {
+        slices.push({
+          emoji: fruit.emoji,
+          color: fruit.color,
+          juice: fruit.juice,
+          x: fruit.x + side * Math.cos(angle + Math.PI / 2) * fruit.r * .18,
+          y: fruit.y + side * Math.sin(angle + Math.PI / 2) * fruit.r * .18,
+          vx: fruit.vx + side * Math.cos(angle + Math.PI / 2) * 5.2,
+          vy: fruit.vy + side * Math.sin(angle + Math.PI / 2) * 3.6 - 1.2,
+          r: fruit.r * 1.02,
+          rot: fruit.rot + side * .5,
+          vr: fruit.vr + side * .18,
+          side,
+          life: 1,
+        })
+      }
+    }
+
+    function createExplosion(fruit, strong) {
+      explosions.push({
+        x: fruit.x,
+        y: fruit.y,
+        color: strong ? fruit.juice : "rgba(255,255,255,.72)",
+        ring: fruit.color,
+        r: fruit.r * .65,
+        grow: strong ? 2.6 : 1.7,
+        life: strong ? .72 : .45,
+        strong,
+      })
+    }
+
+    function addRewardPopup(x, y, text, color) {
+      rewardPopups.push({
+        x,
+        y,
+        text,
+        color,
+        vy: -1.7,
+        life: 1,
+      })
+    }
+
+    function burstJuice(x, y, color, count) {
+      for (let i = 0; i < count; i++) {
+        const a = Math.random() * Math.PI * 2
+        const sp = 2.2 + Math.random() * 11
+        juice.push({
+          x, y,
+          vx: Math.cos(a) * sp,
+          vy: Math.sin(a) * sp,
+          size: 3 + Math.random() * 9,
+          life: .65 + Math.random() * .65,
+          color,
+        })
+      }
+    }
+
+    function drawFruit(fruit) {
+      ctx.save()
+      ctx.translate(fruit.x, fruit.y)
+      ctx.rotate(fruit.rot)
+      ctx.shadowColor = fruit.color
+      ctx.shadowBlur = 34
+      const isTarget = targetFruit && fruit.name === targetFruit.name
+      const halo = ctx.createRadialGradient(0, 0, fruit.r * .25, 0, 0, fruit.r + 28)
+      halo.addColorStop(0, isTarget ? "rgba(255,255,255,.34)" : "rgba(255,255,255,.18)")
+      halo.addColorStop(.52, isTarget ? "rgba(255,209,102,.28)" : fruit.color + "33")
+      halo.addColorStop(1, "rgba(255,255,255,0)")
+      ctx.fillStyle = halo
+      ctx.beginPath()
+      ctx.arc(0, 0, fruit.r + (isTarget ? 26 : 16), 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = isTarget ? "rgba(255,244,179,.95)" : fruit.color
+      ctx.lineWidth = isTarget ? 5 : 3
+      ctx.shadowBlur = isTarget ? 28 : 18
+      ctx.beginPath()
+      ctx.arc(0, 0, fruit.r + (isTarget ? 16 : 8), 0, Math.PI * 2)
+      ctx.stroke()
+      if (isTarget) {
+        ctx.strokeStyle = "rgba(255,255,255,.72)"
+        ctx.lineWidth = 2
+        ctx.setLineDash([10, 8])
+        ctx.beginPath()
+        ctx.arc(0, 0, fruit.r + 25, 0, Math.PI * 2)
+        ctx.stroke()
+        ctx.setLineDash([])
+      }
+      ctx.font = `${fruit.r * 1.45}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`
+      ctx.textAlign = "center"
+      ctx.textBaseline = "middle"
+      ctx.fillText(fruit.emoji, 0, 2)
+      ctx.restore()
+    }
+
+    function drawExplosions() {
+      ctx.save()
+      ctx.globalCompositeOperation = "lighter"
+      for (const e of explosions) {
+        const alpha = Math.max(0, e.life)
+        ctx.globalAlpha = alpha
+        ctx.strokeStyle = e.ring
+        ctx.shadowColor = e.ring
+        ctx.shadowBlur = e.strong ? 28 : 14
+        ctx.lineWidth = e.strong ? 7 : 4
+        ctx.beginPath()
+        ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2)
+        ctx.stroke()
+        ctx.globalAlpha = alpha * .55
+        ctx.fillStyle = e.color
+        ctx.beginPath()
+        ctx.arc(e.x, e.y, e.r * .48, 0, Math.PI * 2)
+        ctx.fill()
+        for (let i = 0; i < 8; i++) {
+          const a = i / 8 * Math.PI * 2 + e.r * .018
+          ctx.globalAlpha = alpha * .7
+          ctx.strokeStyle = e.color
+          ctx.lineWidth = e.strong ? 4 : 2
+          ctx.beginPath()
+          ctx.moveTo(e.x + Math.cos(a) * e.r * .35, e.y + Math.sin(a) * e.r * .35)
+          ctx.lineTo(e.x + Math.cos(a) * e.r * 1.05, e.y + Math.sin(a) * e.r * 1.05)
+          ctx.stroke()
+        }
+      }
+      ctx.restore()
+    }
+
+    function drawDangerOverlay() {
+      if (dangerFlash <= 0) return
+      ctx.save()
+      ctx.globalAlpha = Math.min(.48, dangerFlash * .48)
+      ctx.fillStyle = "rgba(255,24,34,.72)"
+      ctx.fillRect(0, 0, W, H)
+      ctx.globalAlpha = Math.min(.9, dangerFlash)
+      ctx.strokeStyle = "rgba(255,255,255,.82)"
+      ctx.lineWidth = 8
+      ctx.strokeRect(5, 5, W - 10, H - 10)
+      ctx.restore()
+    }
+
+    function drawRewardPopups() {
+      ctx.save()
+      ctx.textAlign = "center"
+      ctx.textBaseline = "middle"
+      for (const popup of rewardPopups) {
+        ctx.globalAlpha = Math.max(0, popup.life)
+        ctx.font = "900 26px ui-rounded, 'PingFang SC', system-ui"
+        ctx.lineWidth = 6
+        ctx.strokeStyle = "rgba(0,0,0,.62)"
+        ctx.strokeText(popup.text, popup.x, popup.y)
+        ctx.fillStyle = popup.color
+        ctx.shadowColor = popup.color
+        ctx.shadowBlur = 18
+        ctx.fillText(popup.text, popup.x, popup.y)
+      }
+      ctx.restore()
+    }
+
+    function drawWorkoutGuide() {
+      if (!targetZone || sessionEnded) return
+      const c = zoneCenter(targetZone)
+      const phase = currentPhase()
+      const w = Math.min(280, W * .28)
+      const h = Math.min(180, H * .26)
+      ctx.save()
+      ctx.globalAlpha = .8
+      ctx.strokeStyle = targetColor(.72)
+      ctx.fillStyle = targetColor(.08)
+      ctx.shadowColor = targetColor(.45)
+      ctx.shadowBlur = 24
+      roundRect(c.x - w / 2, c.y - h / 2, w, h, 12)
+      ctx.fill()
+      ctx.stroke()
+      ctx.shadowBlur = 0
+      ctx.textAlign = "center"
+      ctx.textBaseline = "middle"
+      ctx.fillStyle = "rgba(255,255,255,.9)"
+      ctx.font = "900 18px ui-rounded, 'PingFang SC', system-ui"
+      ctx.fillText(`${phase.name} · ${zoneLabels[targetZone]}`, c.x, c.y - h / 2 - 18)
+      ctx.font = "800 12px ui-rounded, 'PingFang SC', system-ui"
+      ctx.fillStyle = "rgba(255,255,255,.66)"
+      ctx.fillText(phase.hint, c.x, c.y + h / 2 + 18)
+      ctx.restore()
+    }
+
+    function drawTimerRing() {
+      if (!sessionStartedAt) return
+      const elapsed = sessionEnded ? SESSION_MS : Math.min(SESSION_MS, performance.now() - sessionStartedAt)
+      const left = Math.max(0, SESSION_MS - elapsed)
+      const progress = elapsed / SESSION_MS
+      const x = Math.min(W - 78, Math.max(78, W - 86))
+      const y = 102
+      const r = 44
+      ctx.save()
+      ctx.fillStyle = "rgba(10,12,10,.54)"
+      ctx.strokeStyle = "rgba(255,255,255,.18)"
+      ctx.lineWidth = 8
+      ctx.beginPath()
+      ctx.arc(x, y, r, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+      ctx.strokeStyle = targetColor(.95)
+      ctx.shadowColor = targetColor(.6)
+      ctx.shadowBlur = 18
+      ctx.beginPath()
+      ctx.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress)
+      ctx.stroke()
+      ctx.shadowBlur = 0
+      ctx.fillStyle = "#fff"
+      ctx.textAlign = "center"
+      ctx.textBaseline = "middle"
+      ctx.font = "900 18px ui-rounded, 'PingFang SC', system-ui"
+      ctx.fillText(formatTime(left), x, y - 4)
+      ctx.fillStyle = "rgba(255,255,255,.62)"
+      ctx.font = "800 10px ui-rounded, 'PingFang SC', system-ui"
+      ctx.fillText(currentPhase().name, x, y + 18)
+      ctx.restore()
+    }
+
+    function drawSlice(piece) {
+      ctx.save()
+      ctx.translate(piece.x, piece.y)
+      ctx.rotate(piece.rot)
+      ctx.globalAlpha = Math.max(0, piece.life)
+      ctx.shadowColor = piece.juice
+      ctx.shadowBlur = 14
+      ctx.beginPath()
+      ctx.moveTo(0, 0)
+      ctx.arc(0, 0, piece.r, piece.side > 0 ? -Math.PI / 2 : Math.PI / 2, piece.side > 0 ? Math.PI / 2 : Math.PI * 1.5)
+      ctx.closePath()
+      ctx.fillStyle = piece.color
+      ctx.fill()
+      ctx.strokeStyle = "rgba(255,255,255,.65)"
+      ctx.lineWidth = 2
+      ctx.stroke()
+      ctx.font = `${piece.r * 1.1}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`
+      ctx.textAlign = "center"
+      ctx.textBaseline = "middle"
+      ctx.fillText(piece.emoji, piece.side * -piece.r * .18, 2)
+      ctx.restore()
+    }
+
+    function drawJuice() {
+      ctx.save()
+      for (const p of juice) {
+        ctx.globalAlpha = Math.max(0, p.life)
+        ctx.fillStyle = p.color
+        ctx.shadowColor = p.color
+        ctx.shadowBlur = 10
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+        ctx.fill()
+      }
+      ctx.restore()
+    }
+
+    function drawTrails() {
+      ctx.save()
+      ctx.lineCap = "round"
+      ctx.lineJoin = "round"
+      for (const t of trails) {
+        if (t.points.length < 2) continue
+        ctx.globalAlpha = Math.max(0, t.life)
+        ctx.strokeStyle = t.color
+        ctx.shadowColor = t.color
+        ctx.shadowBlur = 26 + t.speed * .42
+        ctx.lineWidth = Math.max(16, Math.min(42, 16 + t.speed * .28))
+        ctx.beginPath()
+        t.points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y))
+        ctx.stroke()
+        ctx.globalAlpha = Math.max(0, t.life * .75)
+        ctx.strokeStyle = "rgba(255,255,255,.85)"
+        ctx.lineWidth = Math.max(4, Math.min(12, 4 + t.speed * .08))
+        ctx.stroke()
+      }
+      ctx.restore()
+    }
+
+    function hexToRgba(hex, alpha) {
+      const value = hex.replace("#", "")
+      const n = Number.parseInt(value, 16)
+      const r = (n >> 16) & 255
+      const g = (n >> 8) & 255
+      const b = n & 255
+      return `rgba(${r},${g},${b},${alpha})`
+    }
+
+    function targetColor(alpha = .9) {
+      return targetFruit ? hexToRgba(targetFruit.color, alpha) : `rgba(255,231,128,${alpha})`
+    }
+
+    function currentHandColor(alpha = .9) {
+      const active = Math.max(handStrike, handLock)
+      return active > .18 ? targetColor(alpha) : `rgba(255,232,150,${alpha})`
+    }
+
+    function drawTargetBanner() {
+      if (!targetFruit) return
+      const text = `先切 ${targetFruit.emoji} ${targetFruit.name}`
+      const progress = `${targetHits}/3`
+      const w = Math.min(420, W - 36)
+      const h = 66
+      const x = (W - w) / 2
+      const y = Math.max(64, H * .085)
+      ctx.save()
+      ctx.fillStyle = "rgba(10,12,10,.58)"
+      ctx.strokeStyle = "rgba(255,209,102,.52)"
+      ctx.lineWidth = 1.5
+      ctx.shadowColor = "rgba(0,0,0,.35)"
+      ctx.shadowBlur = 24
+      roundRect(x, y, w, h, 8)
+      ctx.fill()
+      ctx.stroke()
+      ctx.shadowBlur = 0
+      ctx.fillStyle = "#fff"
+      ctx.textAlign = "center"
+      ctx.textBaseline = "middle"
+      ctx.font = "900 26px ui-rounded, 'PingFang SC', system-ui"
+      ctx.fillText(text, W / 2, y + 28)
+      ctx.fillStyle = "rgba(255,255,255,.72)"
+      ctx.font = "800 13px ui-rounded, 'PingFang SC', system-ui"
+      ctx.fillText(`命中进度 ${progress}`, W / 2, y + 50)
+      ctx.restore()
+    }
+
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath()
+      ctx.moveTo(x + r, y)
+      ctx.arcTo(x + w, y, x + w, y + h, r)
+      ctx.arcTo(x + w, y + h, x, y + h, r)
+      ctx.arcTo(x, y + h, x, y, r)
+      ctx.arcTo(x, y, x + w, y, r)
+      ctx.closePath()
+    }
+
+    function drawHand() {
+      if (!handPoints.length) return
+      ctx.save()
+      const p = handPoints[0]
+      const active = Math.max(handStrike, handLock)
+      const color = currentHandColor(.9)
+      const softColor = currentHandColor(.22)
+      const radius = 24 + active * 12
+      ctx.fillStyle = softColor
+      ctx.strokeStyle = color
+      ctx.lineWidth = 4
+      ctx.shadowColor = color
+      ctx.shadowBlur = 28 + active * 34
+      ctx.beginPath()
+      ctx.arc(p.x, p.y, radius, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+      ctx.globalAlpha = .24 + active * .28
+      ctx.beginPath()
+      ctx.arc(p.x, p.y, 68 + active * 28, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.globalAlpha = .9
+      ctx.strokeStyle = active > .18 ? targetColor(.98) : "rgba(255,255,255,.72)"
+      ctx.lineWidth = 3
+      ctx.beginPath()
+      ctx.moveTo(p.x - 34, p.y)
+      ctx.lineTo(p.x - 12, p.y)
+      ctx.moveTo(p.x + 12, p.y)
+      ctx.lineTo(p.x + 34, p.y)
+      ctx.moveTo(p.x, p.y - 34)
+      ctx.lineTo(p.x, p.y - 12)
+      ctx.moveTo(p.x, p.y + 12)
+      ctx.lineTo(p.x, p.y + 34)
+      ctx.stroke()
+      if (active > .42) {
+        ctx.font = "900 13px ui-rounded, 'PingFang SC', system-ui"
+        ctx.textAlign = "center"
+        ctx.textBaseline = "middle"
+        ctx.fillStyle = targetColor(.96)
+        ctx.shadowBlur = 16
+        ctx.fillText("锁定", p.x, p.y - radius - 18)
+      }
+      ctx.restore()
+    }
+
+    function updateHandLock() {
+      if (!handPoints.length || !targetFruit) {
+        handLock = Math.max(0, handLock - .08)
+        return
+      }
+      const p = handPoints[0]
+      const locked = fruits.some(f => {
+        if (f.sliced || f.name !== targetFruit.name) return false
+        return Math.hypot(f.x - p.x, f.y - p.y) < f.r * 2.25
+      })
+      handLock = locked ? Math.min(1, handLock + .22) : Math.max(0, handLock - .06)
+    }
+
+    function updateHandTrails(points) {
+      const nowPoints = points
+      const nextTrails = []
+      for (const p of nowPoints) {
+        const prev = prevHandPoints.find(q => q.role === p.role)
+        const speed = prev ? Math.hypot(p.x - prev.x, p.y - prev.y) : 0
+        maxHandSpeed = Math.max(maxHandSpeed, speed)
+        const now = performance.now()
+        if (speed > 9 && now - lastSwingAt > 320) {
+          swingCount += 1
+          lastSwingAt = now
+        }
+        if (speed > 4.8 || handLock > .25) handStrike = Math.min(1, Math.max(handStrike, speed / 18))
+        if (prev && speed > 1.8) {
+          nextTrails.push({
+            points: [{ x: prev.x, y: prev.y }, { x: p.x, y: p.y }],
+            life: Math.min(1, .46 + speed / 38),
+            speed,
+            color: speed > 4.8 || handLock > .25 ? targetColor(.92) : "rgba(255,231,128,.82)",
+          })
+        }
+      }
+      trails.push(...nextTrails)
+      prevHandPoints = nowPoints.map(p => ({ ...p }))
+    }
+
+    function updateMouseTrail(x, y) {
+      const p = { x, y }
+      const prev = mouseTrail[mouseTrail.length - 1]
+      mouseTrail.push(p)
+      if (mouseTrail.length > 8) mouseTrail.shift()
+      if (prev) {
+        const speed = Math.hypot(x - prev.x, y - prev.y)
+        maxHandSpeed = Math.max(maxHandSpeed, speed)
+        const now = performance.now()
+        if (speed > 9 && now - lastSwingAt > 320) {
+          swingCount += 1
+          lastSwingAt = now
+        }
+        if (speed > 3.8 || handLock > .25) handStrike = Math.min(1, Math.max(handStrike, speed / 18))
+        if (speed > 1.2) {
+          trails.push({
+            points: mouseTrail.slice(),
+            life: Math.min(1, .46 + speed / 38),
+            speed,
+            color: speed > 3.8 || handLock > .25 ? targetColor(.92) : "rgba(255,231,128,.82)",
+          })
+        }
+      }
+    }
+
+    function loop(now) {
+      const dt = Math.min(34, now - lastTime)
+      lastTime = now
+      update(dt)
+      const shakeX = screenShake ? (Math.random() - .5) * screenShake : 0
+      const shakeY = screenShake ? (Math.random() - .5) * screenShake : 0
+      ctx.save()
+      ctx.translate(shakeX, shakeY)
+      cameraFill()
+      drawTargetBanner()
+      drawWorkoutGuide()
+      drawTimerRing()
+      for (const fruit of fruits) drawFruit(fruit)
+      for (const piece of slices) drawSlice(piece)
+      drawExplosions()
+      drawJuice()
+      drawRewardPopups()
+      drawTrails()
+      drawHand()
+      ctx.restore()
+      drawDangerOverlay()
+      requestAnimationFrame(loop)
+    }
+
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        })
+        video.srcObject = stream
+        await video.play()
+        cameraOk = true
+        statusEl.innerHTML = "<strong>摄像头已启动</strong>。看目标水果，用整只手中心扫过去。"
+      } catch (err) {
+        cameraOk = false
+        statusEl.innerHTML = "<strong>摄像头未开启</strong>。鼠标/触摸可以完整体验。"
+      }
+    }
+
+    async function startHands() {
+      if (!window.Hands || !cameraOk) return
+      try {
+        const hands = new Hands({ locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` })
+        hands.setOptions({ maxNumHands: 1, modelComplexity: 0, minDetectionConfidence: .58, minTrackingConfidence: .5 })
+        hands.onResults(results => {
+          const hand = results.multiHandLandmarks && results.multiHandLandmarks[0]
+          if (!hand) {
+            handPoints = []
+            prevHandPoints = []
+            return
+          }
+          const palmIds = [0, 5, 9, 13, 17]
+          const center = palmIds.reduce((acc, id) => {
+            acc.x += mirror ? 1 - hand[id].x : hand[id].x
+            acc.y += hand[id].y
+            return acc
+          }, { x: 0, y: 0 })
+          const raw = [{
+            role: "hand",
+            x: center.x / palmIds.length * W,
+            y: center.y / palmIds.length * H,
+          }]
+          const smooth = raw.map(p => {
+            const prev = prevHandPoints.find(q => q.role === p.role)
+            return prev ? { ...p, x: prev.x * .12 + p.x * .88, y: prev.y * .12 + p.y * .88 } : p
+          })
+          handPoints = smooth
+          updateHandTrails(smooth)
+        })
+        async function detect() {
+          if (video.readyState >= 2) await hands.send({ image: video })
+          requestAnimationFrame(detect)
+        }
+        detect()
+        statusEl.innerHTML = "<strong>整手识别已就绪</strong>。现在只用手掌中心当刀，切目标水果更稳。"
+      } catch (err) {
+        statusEl.innerHTML = "<strong>手势模型加载失败</strong>。先用鼠标/触摸玩。"
+      }
+    }
+
+    async function startExperience() {
+      if (booting) return
+      booting = true
+      startPanel.style.display = "none"
+      await startCamera()
+      startHands()
+      resetGame()
+      booting = false
+    }
+
+    function pointerPos(e) {
+      const rect = canvas.getBoundingClientRect()
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top }
+    }
+
+    canvas.addEventListener("pointerdown", e => {
+      mouseDown = true
+      if (!soundUnlocked) unlockSound()
+      const p = pointerPos(e)
+      mouseTrail = [p]
+      updateMouseTrail(p.x, p.y)
+    })
+    canvas.addEventListener("pointermove", e => {
+      if (!mouseDown) return
+      const p = pointerPos(e)
+      updateMouseTrail(p.x, p.y)
+    })
+    canvas.addEventListener("pointerup", () => {
+      mouseDown = false
+      mouseTrail = []
+    })
+    canvas.addEventListener("pointercancel", () => {
+      mouseDown = false
+      mouseTrail = []
+    })
+
+    document.getElementById("startBtn").addEventListener("click", () => {
+      unlockSound()
+      startExperience()
+    })
+    soundBtn.addEventListener("click", unlockSound)
+    document.getElementById("resetBtn").addEventListener("click", resetGame)
+    document.getElementById("againBtn").addEventListener("click", resetGame)
+    document.getElementById("flipBtn").addEventListener("click", () => { mirror = !mirror })
+    window.addEventListener("resize", resize)
+    resize()
+    requestAnimationFrame(loop)
+    window.addEventListener("load", () => setTimeout(startExperience, 350))
+  </script>
+</body>
+</html>
