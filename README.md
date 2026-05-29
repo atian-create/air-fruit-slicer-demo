@@ -8,10 +8,10 @@
 
 [![HTML](https://img.shields.io/badge/HTML-5-E34F26?logo=html5&logoColor=white)](index.html)
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-Hands-00A6A6)](https://developers.google.com/mediapipe)
-[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-222222?logo=github)](https://atian-create.github.io/air-fruit-slicer-demo/)
+[![Website](https://img.shields.io/badge/Website-fruitfit.midao.site-FF6B4A)](https://fruitfit.midao.site/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-### 🚀 [打开网页玩一下 → air-fruit-slicer-demo](https://atian-create.github.io/air-fruit-slicer-demo/)
+### 🚀 [打开网页玩一下 → fruitfit.midao.site](https://fruitfit.midao.site/)
 
 </div>
 
@@ -59,7 +59,7 @@
 
 ## 🚀 快速上手
 
-> 普通用户**不用看这段**，直接[打开线上网页](https://atian-create.github.io/air-fruit-slicer-demo/) 就能玩。
+> 普通用户**不用看这段**，直接[打开线上网页](https://fruitfit.midao.site/) 就能玩。
 > 这段是给想 fork 改造、本地跑、自己部署的人看的。
 
 不会代码？复制下面这段，发给 ChatGPT / Claude / 豆包 / 通义千问任何一个 AI：
@@ -107,7 +107,7 @@ python3 -m http.server 5178
 | 手部识别 | MediaPipe Hands |
 | 动画 | Canvas 2D |
 | 声音 | Web Audio API |
-| 部署 | GitHub Pages |
+| 部署 | GitHub Pages / 自定义域名 |
 
 ## 📂 核心文件
 
