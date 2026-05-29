@@ -3,5 +3,7 @@
 node_modules/
 dist/
 build/
+screenshots/
+build-in-public-package.md
 .env
 .env.*
